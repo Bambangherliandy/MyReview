@@ -19,6 +19,22 @@
   }
 }
 
+@media print {
+  /* Sembunyikan semua elemen selain komponen cetak */
+  body * {
+    visibility: hidden;
+  }
+  #printable-card, #printable-card * {
+    visibility: visible;
+  }
+  #printable-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
