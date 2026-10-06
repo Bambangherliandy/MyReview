@@ -2,16 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Star, Coffee, Smartphone, PenLine, BarChart3, Zap, MessageCircle, TrendingUp,
   BadgeCheck, QrCode, SlidersHorizontal, UtensilsCrossed, Scissors, BedDouble,
   Store, Dumbbell, Check, X, Menu, ChevronDown, Plus, Globe,
+  ZoomIn, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import ClientShowcaseAnimation from '@/components/animation';
 import Logo from "@/components/logo";
+import QrCodeCard from './admin/QrCodeCard';
 
 const WA_NUMBER = '6285129126104';
 const waLink = (text) => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
+
+// Nama tetap untuk demo papan QR (tidak diambil dari database, tidak ikut bahasa)
+const DEMO_CARD_NAME = 'your business name';
+
+// Foto galeri (file ada di public/gallery). w/h = ukuran asli gambar.
+const GALLERY = [
+  { src: '/gallery/gambar-1.jpg', w: 768, h: 1365 },
+  { src: '/gallery/cafe-2.webp', w: 896, h: 1194 },
+  { src: '/gallery/gambar-6.jpg', w: 912, h: 1170 },
+  { src: '/gallery/cafe-3.webp', w: 768, h: 1365 },
+  { src: '/gallery/gambar-7.jpg', w: 912, h: 1170 },
+  
+];
 
 const NAV_HREFS = ['#cara-kerja', '#fitur', '#harga', '#faq'];
 const STEP_ICONS = [Smartphone, Star, PenLine, BarChart3];
@@ -50,6 +66,14 @@ const T = {
     demoVenue: 'Kafe Kenangan Kita', demoAsk: 'Bagaimana pengalaman kopi Anda hari ini?',
     demoThanks: 'Terima kasih! Pilih cara Anda ingin berbagi pengalaman:',
     demoWa: 'Kirim masukan ke pemilik via WhatsApp', demoSame: 'Semua rating mendapat dua pilihan yang sama.', demoRetry: 'Coba Lagi',
+    galleryTitle: 'Begini Tampilan Papan QR di Kafe',
+    gallerySub: 'Akrilik bening dengan desain Google Review, siap dipasang di kasir, bar, atau meja pelanggan.',
+    galleryCaps: ['Di meja restaurant', 'Di counter kopi','card google review', 'Di rak display', 'Di toko pakaian'],
+    galleryZoom: 'perbesar foto', galleryCta: 'Lihat Paket', galleryNote: '*Ilustrasi visual untuk gambaran penempatan papan',
+    galleryClose: 'Tutup', galleryPrev: 'Foto sebelumnya', galleryNext: 'Foto berikutnya',
+    designBadge: 'Pilihan Desain',
+    designTitle: 'Pilih Desain Papan QR Favoritmu',
+    designSub: 'Klik nama tema di bawah untuk melihat tampilan papan akrilik untuk usahamu:',
     featTitle: <>Kenapa Pemilik Bisnis Menyukai <My />Review?</>,
     features: [
       { title: 'Ulasan Jadi Lebih Mudah', text: 'Pelanggan langsung dibawa ke dialog tulis ulasan Google tanpa mencari nama tempat.' },
@@ -110,6 +134,14 @@ const T = {
     demoVenue: 'Kenangan Kita Café', demoAsk: 'How was your coffee today?',
     demoThanks: 'Thank you! Choose how you would like to share your experience:',
     demoWa: 'Send feedback to the owner via WhatsApp', demoSame: 'Every rating gets the same two options.', demoRetry: 'Try Again',
+    galleryTitle: 'How the QR Stand Looks in a Cafe',
+    gallerySub: 'Clear acrylic with a Google Review design, ready for the counter, the bar, or customer tables.',
+    galleryCaps: ['At the cashier', 'At the coffee counter', 'On the display shelf', 'At the barista bar'],
+    galleryZoom: 'enlarge photo', galleryCta: 'See Packages', galleryNote: '*Visual illustration to show stand placement',
+    galleryClose: 'Close', galleryPrev: 'Previous photo', galleryNext: 'Next photo',
+    designBadge: 'Design Options',
+    designTitle: 'Pick Your Favorite QR Stand Design',
+    designSub: 'Tap a theme below to preview how the acrylic stand will look for your business:',
     featTitle: <>Why Business Owners Love <My />Review</>,
     features: [
       { title: 'Reviews Made Easier', text: 'Customers go straight to the Google review dialog without searching for your place.' },
@@ -216,7 +248,25 @@ export default function LandingPage() {
   const [lang, setLangState] = useState('id');
   const [demoRating, setDemoRating] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
   const t = T[lang];
+
+  // Lightbox galeri: Esc menutup, panah kiri/kanan berpindah foto, scroll halaman dikunci
+  useEffect(() => {
+    if (lightbox === null) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setLightbox(null);
+      if (e.key === 'ArrowRight') setLightbox((i) => (i + 1) % GALLERY.length);
+      if (e.key === 'ArrowLeft') setLightbox((i) => (i - 1 + GALLERY.length) % GALLERY.length);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [lightbox]);
 
   // Ingat pilihan bahasa pengunjung
   useEffect(() => {
@@ -309,6 +359,99 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* GALERI: PAPAN QR DI KAFE */}
+      <section id="galeri" className="max-w-6xl mx-auto px-6 py-12">
+        <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-6 sm:p-10 text-white">
+          <div aria-hidden="true" className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-amber-500/15 blur-3xl" />
+
+          <div className="relative mb-8 flex flex-col gap-5 sm:mb-10 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-xl">
+              <h2 className="mb-2 text-2xl font-bold sm:text-3xl">{t.galleryTitle}</h2>
+              <p className="text-sm leading-relaxed text-slate-300">{t.gallerySub}</p>
+            </div>
+            <a href="#harga" className="inline-flex w-fit items-center rounded-xl bg-amber-500 px-6 py-3 text-sm font-bold text-slate-950 transition-colors hover:bg-amber-600">
+              {t.galleryCta}
+            </a>
+          </div>
+
+          <div className="relative grid grid-cols-2 items-center gap-3 sm:gap-4 lg:grid-cols-4">
+            {GALLERY.map((g, i) => (
+              <button
+                key={g.src}
+                type="button"
+                onClick={() => setLightbox(i)}
+                aria-label={`${t.galleryCaps[i]}, ${t.galleryZoom}`}
+                className="group relative block w-full overflow-hidden rounded-2xl shadow-2xl shadow-black/40 ring-1 ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              >
+                <Image
+                  src={g.src}
+                  alt={`${t.galleryCaps[i]} - MyReview`}
+                  width={g.w}
+                  height={g.h}
+                  sizes="(min-width: 1024px) 22vw, 46vw"
+                  className="h-auto w-full transition-transform duration-500 group-hover:scale-105"
+                />
+                <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent px-3.5 pb-3 pt-10 text-left text-xs font-medium text-white">
+                  {t.galleryCaps[i]}
+                  <ZoomIn size={14} className="shrink-0 text-amber-300" />
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <p className="relative mt-6 text-[11px] text-slate-500">{t.galleryNote}</p>
+        </div>
+      </section>
+
+      {lightbox !== null && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t.galleryCaps[lightbox]}
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            type="button"
+            aria-label={t.galleryClose}
+            onClick={() => setLightbox(null)}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2.5 text-white transition-colors hover:bg-white/20"
+          >
+            <X size={22} />
+          </button>
+          <button
+            type="button"
+            aria-label={t.galleryPrev}
+            onClick={(e) => { e.stopPropagation(); setLightbox((i) => (i - 1 + GALLERY.length) % GALLERY.length); }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2.5 text-white transition-colors hover:bg-white/20 sm:left-6"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <figure className="flex max-h-full flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={GALLERY[lightbox].src}
+              alt={`${t.galleryCaps[lightbox]} - MyReview`}
+              width={GALLERY[lightbox].w}
+              height={GALLERY[lightbox].h}
+              sizes="90vw"
+              style={{ width: 'auto', height: 'auto' }}
+              className="max-h-[80vh] max-w-full rounded-2xl shadow-2xl"
+            />
+            <figcaption className="mt-3 text-center text-sm text-slate-300">
+              {t.galleryCaps[lightbox]} ({lightbox + 1}/{GALLERY.length})
+            </figcaption>
+          </figure>
+          <button
+            type="button"
+            aria-label={t.galleryNext}
+            onClick={(e) => { e.stopPropagation(); setLightbox((i) => (i + 1) % GALLERY.length); }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2.5 text-white transition-colors hover:bg-white/20 sm:right-6"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
+      )}
 
       {/* MASALAH & SOLUSI */}
       <section className="max-w-6xl mx-auto px-6 py-12">
@@ -451,6 +594,20 @@ export default function LandingPage() {
     </div>
   </div>
 </section>
+
+      {/* PILIHAN DESAIN PAPAN */}
+      <section id="desain" className="max-w-4xl mx-auto px-6 py-12">
+        <div className="text-center mb-8">
+          <span className="inline-block bg-amber-100 border border-amber-200 text-amber-900 text-xs font-semibold px-4 py-1.5 rounded-full mb-3 uppercase tracking-wider">
+            {t.designBadge}
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">{t.designTitle}</h2>
+          <p className="text-slate-500 text-sm">{t.designSub}</p>
+        </div>
+        <div className="max-w-md mx-auto">
+          <QrCodeCard client={{ slug: 'demo', name: DEMO_CARD_NAME }} demo />
+        </div>
+      </section>
 
       {/* FITUR */}
       <section id="fitur" className="max-w-6xl mx-auto px-6 py-12">
