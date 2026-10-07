@@ -1,37 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useId } from 'react';
-import QRCode from 'qrcode';
-import { Printer, Download, ArrowLeftRight, ChevronDown } from 'lucide-react';
-import { toPng, toSvg } from 'html-to-image';
-
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    return (process.env.NEXT_PUBLIC_BASE_URL || window.location.origin).replace(/\/$/, '');
-  }
-  return (process.env.NEXT_PUBLIC_BASE_URL || 'https://myreview.com').replace(/\/$/, '');
-};
-
-/* ------------------------------------------------------------------ */
-/*  PENGATURAN                                                         */
-/* ------------------------------------------------------------------ */
-const PREVIEW_MAX = 320; // sisi terpanjang papan di layar (px)
-const MIN_CM = 3;
-const MAX_CM = 40;
-const MIN_RATIO = 0.5; // tinggi : lebar terkecil yang didukung (1 : 2)
-const MAX_RATIO = 2; //   tinggi : lebar terbesar yang didukung (2 : 1)
-const A4_W = 19; // area cetak A4 portrait dengan margin 10mm (cm)
-const A4_H = 27.7;
-
-// Pilihan cepat ukuran cetak: [lebar, tinggi] dalam cm
-const PRINT_PRESETS = [
-  [8, 8],
-  [10, 10],
-  [10, 15],
-  [15, 15],
-  [15, 20],
-  [19, 19],
-];
+import { useId } from 'react';
 
 // Font. Kalau Anda memuat Playfair Display / Poppins lewat next/font dan
 // memberi variabel --font-playfair / --font-poppins, otomatis terpakai.
@@ -46,7 +15,7 @@ const GOLD_STOPS_DEEP = ['#7A5A14', '#D9B65B', '#A97C20', '#D9B65B', '#7A5A14'];
 /* ------------------------------------------------------------------ */
 /*  TEMA DESAIN                                                        */
 /* ------------------------------------------------------------------ */
-const THEMES = {
+export const THEMES = {
   midnight: {
     kind: 'premium',
     title: 'Midnight Gold',
@@ -252,13 +221,14 @@ const THEMES = {
     swatch: 'conic-gradient(#4285F4 0 25%,#EA4335 0 50%,#FBBC05 0 75%,#34A853 0)',
   },
 };
+export const THEME_KEYS = Object.keys(THEMES);
 
-// Tema klasik tampil paling depan di pilihan tema
-const THEME_KEYS = ['classic', ...Object.keys(THEMES).filter((k) => k !== 'classic')];
-
-const parseCm = (v) => {
-  const n = parseFloat(String(v).replace(',', '.'));
-  return Number.isFinite(n) ? n : NaN;
+/* ------------------------------------------------------------------ */
+/*  Teks pada papan (bisa Indonesia / Inggris)                         */
+/* ------------------------------------------------------------------ */
+export const LABELS = {
+  id: { sub: 'Bantu Kami Dengan', title: 'Google Review', tap: 'Tempelkan HP', tapLong: 'Tempelkan HP Kamu', or: 'ATAU', scan: 'Scan QR' },
+  en: { sub: 'Rate Us On', title: 'Google Review', tap: 'Tap Your Phone', tapLong: 'Tap Your Phone', or: 'OR', scan: 'Scan QR' },
 };
 
 /* ------------------------------------------------------------------ */
@@ -342,10 +312,9 @@ function GoogleFrame({ wn, hn }) {
   );
 }
 
-function ClassicBoard({ u, s, wn, hn, qr, error, name, alt }) {
+function ClassicBoard({ u, s, wn, hn, qr, error, name, alt, L }) {
   const nameLen = String(name || '').length || 1;
-  const nameFont = Math.max(3.2, Math.min(4.8, 46 / (nameLen * 0.58)));
-  const hair = Math.max(1, 0.28 * s);
+  const nameFont = Math.max(2.6, Math.min(3.8, 62 / (nameLen * 0.58)));
   const label = {
     fontSize: u(2.6),
     fontWeight: 700,
@@ -398,77 +367,41 @@ function ClassicBoard({ u, s, wn, hn, qr, error, name, alt }) {
         <GoogleG />
       </div>
 
-      {/* Nama usaha: tanpa kotak putih, menyatu dengan bingkai */}
       {name && (
         <div
           style={{
             position: 'absolute',
-            left: 0,
-            right: 0,
+            left: '50%',
             bottom: u(3.6),
+            transform: 'translateX(-50%)',
+            height: u(7.8),
+            maxWidth: u(72),
+            padding: `0 ${u(4.5)}`,
+            boxSizing: 'border-box',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: u(2),
-            padding: `0 ${u(9)}`,
-            boxSizing: 'border-box',
+            background: '#fff',
+            borderRadius: u(4),
+            boxShadow: `0 ${u(0.3)} ${u(1.2)} rgba(0,0,0,0.25)`,
             zIndex: 2,
           }}
         >
-          <div
-            style={{
-              flex: '1 1 0',
-              minWidth: 0,
-              maxWidth: u(14),
-              height: hair,
-              background: 'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.9))',
-            }}
-          />
-          <div
-            style={{
-              width: u(1.3),
-              height: u(1.3),
-              background: '#fff',
-              transform: 'rotate(45deg)',
-              flex: '0 0 auto',
-            }}
-          />
           <span
             style={{
-              flex: '0 1 auto',
-              minWidth: 0,
-              fontFamily: FONT_SERIF,
+              display: 'block',
+              maxWidth: '100%',
               fontSize: u(nameFont),
-              fontWeight: 600,
-              color: '#fff',
-              letterSpacing: '0.05em',
-              lineHeight: 1.25,
+              fontWeight: 700,
+              color: '#1e293b',
+              lineHeight: 1.2,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              textShadow: `0 ${u(0.3)} ${u(0.9)} rgba(0,0,0,0.35)`,
             }}
           >
             {name}
           </span>
-          <div
-            style={{
-              width: u(1.3),
-              height: u(1.3),
-              background: '#fff',
-              transform: 'rotate(45deg)',
-              flex: '0 0 auto',
-            }}
-          />
-          <div
-            style={{
-              flex: '1 1 0',
-              minWidth: 0,
-              maxWidth: u(14),
-              height: hair,
-              background: 'linear-gradient(270deg, rgba(255,255,255,0), rgba(255,255,255,0.9))',
-            }}
-          />
         </div>
       )}
 
@@ -490,7 +423,7 @@ function ClassicBoard({ u, s, wn, hn, qr, error, name, alt }) {
         }}
       >
         <div style={{ fontSize: u(3.3), fontWeight: 500, color: '#334155', lineHeight: 1.2 }}>
-          Bantu Kami Dengan
+          {L.sub}
         </div>
         <div
           style={{
@@ -502,7 +435,7 @@ function ClassicBoard({ u, s, wn, hn, qr, error, name, alt }) {
             whiteSpace: 'nowrap',
           }}
         >
-          Google Review
+          {L.title}
         </div>
         <div
           style={{
@@ -532,7 +465,7 @@ function ClassicBoard({ u, s, wn, hn, qr, error, name, alt }) {
             <div style={{ width: u(25) }}>
               <NfcPhoneIcon />
             </div>
-            <div style={label}>Tempelkan HP Kamu</div>
+            <div style={label}>{L.tapLong}</div>
           </div>
 
           <div style={{ position: 'relative', alignSelf: 'center', width: u(8), height: u(30) }}>
@@ -559,7 +492,7 @@ function ClassicBoard({ u, s, wn, hn, qr, error, name, alt }) {
                 color: '#64748b',
               }}
             >
-              ATAU
+          {L.or}
             </span>
           </div>
 
@@ -584,7 +517,7 @@ function ClassicBoard({ u, s, wn, hn, qr, error, name, alt }) {
             ) : (
               <div style={{ width: u(23), height: u(23), background: '#f1f5f9' }} />
             )}
-            <div style={label}>Scan QR</div>
+            <div style={label}>{L.scan}</div>
           </div>
         </div>
       </div>
@@ -596,7 +529,7 @@ function ClassicBoard({ u, s, wn, hn, qr, error, name, alt }) {
 /*  TEMA PREMIUM: latar gelap/ivory, garis emas, aksen 4 warna Google  */
 /*  di sudut, tipografi serif, nama toko bergaya elegan                */
 /* ------------------------------------------------------------------ */
-function PremiumBoard({ pal, u, s, wn, hn, qr, error, name, alt, uid }) {
+function PremiumBoard({ pal, u, s, wn, hn, qr, error, name, alt, uid, L }) {
   const R = 22; // ukuran aksen sudut
   const K = 0.3; // makin kecil makin melengkung
   const goldCss = `linear-gradient(135deg, ${pal.gold.join(',')})`;
@@ -769,7 +702,7 @@ function PremiumBoard({ pal, u, s, wn, hn, qr, error, name, alt, uid }) {
             paddingLeft: '0.26em',
           }}
         >
-          Bantu Kami Dengan
+          {L.sub}
         </div>
         <div
           style={{
@@ -783,7 +716,7 @@ function PremiumBoard({ pal, u, s, wn, hn, qr, error, name, alt, uid }) {
             marginTop: u(0.6),
           }}
         >
-          Google Review
+          {L.title}
         </div>
         <div style={{ width: u(26), height: u(4.8), marginTop: u(1.2) }}>
           <GoldStars uid={uid} stops={pal.stars || GOLD_STOPS} />
@@ -806,7 +739,7 @@ function PremiumBoard({ pal, u, s, wn, hn, qr, error, name, alt, uid }) {
             <div style={{ width: u(23), height: u(25.5), display: 'flex', alignItems: 'center' }}>
               <NfcPhoneIcon stroke={pal.iconStroke} fill={pal.iconFill} textFill={pal.iconStroke} />
             </div>
-            <div style={label}>Tempelkan HP</div>
+            <div style={label}>{L.tap}</div>
           </div>
 
           <div
@@ -830,7 +763,7 @@ function PremiumBoard({ pal, u, s, wn, hn, qr, error, name, alt, uid }) {
                 padding: `${u(1)} 0`,
               }}
             >
-              ATAU
+          {L.or}
             </span>
             <div style={{ flex: 1, width: hair, background: goldLineH('0deg') }} />
           </div>
@@ -865,7 +798,7 @@ function PremiumBoard({ pal, u, s, wn, hn, qr, error, name, alt, uid }) {
                 <div style={{ width: u(22.5), height: u(22.5), background: '#f1f5f9' }} />
               )}
             </div>
-            <div style={label}>Scan QR</div>
+            <div style={label}>{L.scan}</div>
           </div>
         </div>
 
@@ -911,440 +844,50 @@ function PremiumBoard({ pal, u, s, wn, hn, qr, error, name, alt, uid }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  KOMPONEN UTAMA                                                     */
+/*  PAPAN STANDEE (dipakai di halaman admin dan halaman utama)         */
 /* ------------------------------------------------------------------ */
-export default function QrCodeCard({ client, demo = false }) {
-  const [url, setUrl] = useState('');
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
-  const [error, setError] = useState('');
-  const [downloading, setDownloading] = useState(false);
-  const [theme, setTheme] = useState('classic'); // tampilan awal: Google Klasik
-  const [showThemes, setShowThemes] = useState(false); // daftar tema tertutup secara default
-
-  // Ukuran cetak (cm). Disimpan sebagai teks supaya enak diketik.
-  const [showPrint, setShowPrint] = useState(false);
-  const [widthCm, setWidthCm] = useState('10');
-  const [heightCm, setHeightCm] = useState('10');
-  const lastValid = useRef({ w: 10, h: 10 });
-
-  const cardRef = useRef(null);
+export function StandeeBoard({
+  width,
+  height,
+  theme = 'midnight',
+  name = '',
+  qr = '',
+  error = '',
+  alt = 'QR Code',
+  lang = 'id',
+  innerRef,
+  shadow = true,
+}) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
-
-  // Lebar papan di layar menyesuaikan lebar kartu, supaya tidak meluber di HP kecil
-  const wrapRef = useRef(null);
-  const [previewMax, setPreviewMax] = useState(PREVIEW_MAX);
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const update = () => {
-      const avail = el.clientWidth - 32 - 20; // padding kartu (p-4) + padding papan (10 x 2)
-      setPreviewMax(Math.max(200, Math.min(PREVIEW_MAX, Math.floor(avail))));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [client?.slug]);
-
-  useEffect(() => {
-    if (!client?.slug) return;
-    const target = `${getBaseUrl()}/${client.slug}`;
-    setUrl(target);
-
-    QRCode.toDataURL(target, {
-      width: 512,
-      margin: 0,
-      errorCorrectionLevel: 'M',
-      color: { dark: '#000000', light: '#ffffff' },
-    })
-      .then(setQrCodeDataUrl)
-      .catch(() => setError('Gagal membuat QR code'));
-  }, [client?.slug]);
-
-  /* ---------- Validasi ukuran ---------- */
-  const wIn = parseCm(widthCm);
-  const hIn = parseCm(heightCm);
-  let sizeProblem = '';
-  if (Number.isNaN(wIn) || Number.isNaN(hIn)) sizeProblem = 'Isi lebar dan tinggi dalam cm.';
-  else if (wIn < MIN_CM || hIn < MIN_CM || wIn > MAX_CM || hIn > MAX_CM)
-    sizeProblem = `Ukuran harus antara ${MIN_CM} dan ${MAX_CM} cm.`;
-  else if (hIn / wIn < MIN_RATIO || hIn / wIn > MAX_RATIO)
-    sizeProblem = 'Perbandingan lebar : tinggi terlalu ekstrem (maksimal 1 : 2 atau 2 : 1).';
-
-  if (!sizeProblem) lastValid.current = { w: wIn, h: hIn };
-  const { w: printW, h: printH } = lastValid.current;
-
-  /* ---------- Dimensi papan di layar ---------- */
-  const longest = Math.max(printW, printH);
-  const wPx = (previewMax * printW) / longest;
-  const hPx = (previewMax * printH) / longest;
-  const s = Math.min(wPx, hPx) / 100; // 1 unit desain = 1% sisi terpendek
-  const wn = wPx / s;
-  const hn = hPx / s;
+  const pal = THEMES[theme] || THEMES.midnight;
+  const s = Math.min(width, height) / 100; // 1 unit desain = 1% sisi terpendek
+  const wn = width / s;
+  const hn = height / s;
   const u = (n) => `${(n * s).toFixed(3)}px`;
-
-  const exceedsA4 = printW > A4_W || printH > A4_H;
-  const fmt = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
-
-  const pal = THEMES[theme] || THEMES.classic;
-  const boardBg = pal.kind === 'premium' ? pal.bgA : '#fff';
-
-  /* ---------- Download ---------- */
-  const downloadPng = async () => {
-    if (!cardRef.current) return;
-    setDownloading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      const dataUrl = await toPng(cardRef.current, {
-        quality: 0.95,
-        pixelRatio: (4 * PREVIEW_MAX) / previewMax, // hasil unduhan/cetak tetap beresolusi sama
-        style: { margin: '0', transform: 'scale(1)' },
-      });
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `standee-${client.slug}.png`;
-      a.click();
-    } catch (err) {
-      console.error('Gagal mengunduh PNG:', err);
-      alert('Gagal mengunduh gambar. Pastikan tidak ada ekstensi browser yang memblokir script.');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  const downloadSvg = async () => {
-    if (!cardRef.current) return;
-    setDownloading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      const dataUrl = await toSvg(cardRef.current);
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `standee-${client.slug}.svg`;
-      a.click();
-    } catch (err) {
-      console.error('Gagal mengunduh SVG:', err);
-      alert('Gagal mengunduh SVG.');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  /* ---------- Cetak: hanya papan, dengan ukuran lebar x tinggi pilihan ---------- */
-  const printCard = async () => {
-    if (!cardRef.current || sizeProblem) return;
-    setDownloading(true);
-    let iframe;
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      const dataUrl = await toPng(cardRef.current, {
-        pixelRatio: (4 * PREVIEW_MAX) / previewMax, // hasil unduhan/cetak tetap beresolusi sama
-        style: { margin: '0', transform: 'scale(1)' },
-      });
-
-      iframe = document.createElement('iframe');
-      iframe.setAttribute('aria-hidden', 'true');
-      iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-      document.body.appendChild(iframe);
-
-      const win = iframe.contentWindow;
-      const doc = win.document;
-      doc.open();
-      doc.write(`<!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<title>Standee ${client.slug}</title>
-<style>
-  @page { margin: 10mm; }
-  html, body { margin: 0; padding: 0; background: #fff; }
-  body { display: flex; justify-content: center; }
-  img { width: ${printW}cm; height: ${printH}cm; display: block;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-</style>
-</head>
-<body><img id="card" alt="Standee ${client.slug}" src="${dataUrl}" /></body>
-</html>`);
-      doc.close();
-
-      const cleanup = () => iframe && iframe.remove();
-      win.onafterprint = cleanup;
-
-      const img = doc.getElementById('card');
-      const go = () => {
-        win.focus();
-        win.print();
-        setTimeout(cleanup, 60000);
-      };
-      if (img.complete) go();
-      else img.onload = go;
-    } catch (err) {
-      console.error('Gagal mencetak:', err);
-      alert('Gagal menyiapkan cetakan. Coba unduh PNG lalu cetak dari file tersebut.');
-      if (iframe) iframe.remove();
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  if (!client?.slug) return null;
-
-  const inputCls =
-    'w-16 rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 text-center';
-
-  const boardProps = {
-    u,
-    s,
-    wn,
-    hn,
-    qr: qrCodeDataUrl,
-    error,
-    name: client.name,
-    alt: `QR Code ${client.name}`,
-  };
+  const L = LABELS[lang] || LABELS.id;
+  const common = { u, s, wn, hn, qr, error, name, alt, L };
 
   return (
-    <div ref={wrapRef} className="flex flex-col items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm w-full">
-      {/* TEMPLATE STANDEE */}
-      <div className="my-2" style={{ padding: 10 }}>
-        <div
-          ref={cardRef}
-          style={{
-            position: 'relative',
-            width: wPx,
-            height: hPx,
-            borderRadius: u(7),
-            boxShadow: `0 ${u(2.5)} ${u(4)} -${u(1)} rgba(0,0,0,0.35)`,
-            fontFamily: FONT_SANS,
-            background: boardBg,
-          }}
-        >
-          {pal.kind === 'premium' ? (
-            <PremiumBoard pal={pal} uid={uid} {...boardProps} />
-          ) : (
-            <ClassicBoard {...boardProps} />
-          )}
-        </div>
-      </div>
-
-      {/* Nama klien & URL (tidak ikut ter-export / tercetak) */}
-      <div className="text-center px-2">
-        <p className="text-sm font-semibold text-slate-700">{client.name}</p>
-        {!demo && (
-          <p className="text-[11px] text-slate-400 break-all font-mono">{url}</p>
-        )}
-      </div>
-
-      {/* PILIH TEMA (bisa dibuka/tutup) */}
-      <div className="w-full">
-        <button
-          type="button"
-          onClick={() => setShowThemes((v) => !v)}
-          aria-expanded={showThemes}
-          aria-controls={`themes-${uid}`}
-          className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-left transition-colors hover:bg-slate-100"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <span
-              className="inline-block h-4 w-4 shrink-0 rounded-full border border-slate-300"
-              style={{ background: THEMES[theme]?.swatch }}
-            />
-            <span className="truncate text-xs font-bold text-slate-700">
-              Tema desain: <span className="text-slate-900">{THEMES[theme]?.title}</span>
-            </span>
-          </span>
-          <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-slate-500">
-            {showThemes ? 'Tutup' : `Ganti (${THEME_KEYS.length})`}
-            <ChevronDown
-              size={14}
-              className={`transition-transform duration-200 ${showThemes ? 'rotate-180' : ''}`}
-            />
-          </span>
-        </button>
-
-        <div
-          id={`themes-${uid}`}
-          aria-hidden={!showThemes}
-          className={`grid transition-[grid-template-rows] duration-300 ease-out ${
-            showThemes ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
-          }`}
-        >
-          <div className="overflow-hidden">
-            <div className="flex flex-wrap gap-1.5 pt-2">
-              {THEME_KEYS.map((k) => {
-                const active = theme === k;
-                return (
-                  <button
-                    key={k}
-                    type="button"
-                    tabIndex={showThemes ? 0 : -1}
-                    onClick={() => setTheme(k)}
-                    aria-pressed={active}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
-                      active
-                        ? 'border-amber-500 bg-amber-50 text-slate-900 ring-2 ring-amber-200'
-                        : 'border-slate-300 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span
-                      className="inline-block w-3.5 h-3.5 rounded-full border border-slate-300"
-                      style={{ background: THEMES[k].swatch }}
-                    />
-                    {THEMES[k].title}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* PENGATURAN UKURAN CETAK */}
-      {showPrint && !demo && (
-        <div className="w-full rounded-xl border border-slate-200 bg-white p-3 space-y-2.5">
-          <p className="text-xs font-bold text-slate-700">Ukuran cetak</p>
-
-          <div className="flex flex-wrap gap-1.5">
-            {PRINT_PRESETS.map(([w, h]) => {
-              const active = !sizeProblem && printW === w && printH === h;
-              return (
-                <button
-                  key={`${w}x${h}`}
-                  type="button"
-                  onClick={() => {
-                    setWidthCm(String(w));
-                    setHeightCm(String(h));
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
-                    active
-                      ? 'bg-amber-500 border-amber-500 text-slate-950'
-                      : 'border-slate-300 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  {w} × {h}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="flex flex-col gap-1">
-              <label htmlFor={`w-${client.slug}`} className="text-[11px] text-slate-500">
-                Lebar (kiri-kanan)
-              </label>
-              <div className="flex items-center gap-1">
-                <input
-                  id={`w-${client.slug}`}
-                  type="number"
-                  inputMode="decimal"
-                  min={MIN_CM}
-                  max={MAX_CM}
-                  step="0.5"
-                  value={widthCm}
-                  onChange={(e) => setWidthCm(e.target.value)}
-                  className={inputCls}
-                />
-                <span className="text-xs text-slate-500">cm</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setWidthCm(heightCm);
-                setHeightCm(widthCm);
-              }}
-              title="Tukar lebar dan tinggi"
-              aria-label="Tukar lebar dan tinggi"
-              className="mb-0.5 p-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100"
-            >
-              <ArrowLeftRight size={14} />
-            </button>
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor={`h-${client.slug}`} className="text-[11px] text-slate-500">
-                Tinggi (atas-bawah)
-              </label>
-              <div className="flex items-center gap-1">
-                <input
-                  id={`h-${client.slug}`}
-                  type="number"
-                  inputMode="decimal"
-                  min={MIN_CM}
-                  max={MAX_CM}
-                  step="0.5"
-                  value={heightCm}
-                  onChange={(e) => setHeightCm(e.target.value)}
-                  className={inputCls}
-                />
-                <span className="text-xs text-slate-500">cm</span>
-              </div>
-            </div>
-          </div>
-
-          {sizeProblem ? (
-            <p className="text-[11px] leading-snug text-red-500">{sizeProblem}</p>
-          ) : (
-            <p className="text-[11px] leading-snug text-slate-400">
-              Tampilan papan di atas ikut berubah sesuai ukuran ini, begitu juga hasil PNG dan SVG.
-              {exceedsA4 && (
-                <span className="text-amber-600">
-                  {' '}
-                  Ukuran melebihi A4 ({fmt(A4_W)} × {fmt(A4_H)} cm), pilih kertas yang lebih besar di dialog cetak.
-                </span>
-              )}{' '}
-              Di dialog cetak, pilih skala 100% (Default).
-            </p>
-          )}
-
-          <button
-            type="button"
-            onClick={printCard}
-            disabled={downloading || !qrCodeDataUrl || !!sizeProblem}
-            className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 disabled:opacity-50"
-          >
-            <Printer size={14} />
-            <span>
-              {downloading ? 'Menyiapkan...' : `Cetak ${fmt(printW)} × ${fmt(printH)} cm`}
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* TOMBOL AKSI */}
-      {!demo && (
-        <div className="flex flex-wrap gap-1.5 w-full pt-1">
-          <button
-            type="button"
-            onClick={() => setShowPrint((v) => !v)}
-            disabled={!qrCodeDataUrl}
-            className="flex-1 py-2 px-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 disabled:opacity-50"
-          >
-            <Printer size={14} />
-            <span>Cetak</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={downloadPng}
-            disabled={downloading || !qrCodeDataUrl}
-            className="flex-1 py-2 px-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 disabled:opacity-50"
-          >
-            <Download size={14} />
-            <span>{downloading ? 'Proses...' : 'PNG'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={downloadSvg}
-            disabled={downloading || !qrCodeDataUrl}
-            className="flex-1 py-2 px-2 border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 disabled:opacity-50"
-          >
-            <Download size={14} />
-            <span>{downloading ? 'Proses...' : 'SVG'}</span>
-          </button>
-        </div>
+    <div
+      ref={innerRef}
+      style={{
+        position: 'relative',
+        width,
+        height,
+        borderRadius: u(7),
+        boxShadow: shadow ? `0 ${u(2.5)} ${u(4)} -${u(1)} rgba(0,0,0,0.35)` : 'none',
+        fontFamily: FONT_SANS,
+        background: pal.kind === 'premium' ? pal.bgA : '#fff',
+        flex: '0 0 auto',
+      }}
+    >
+      {pal.kind === 'premium' ? (
+        <PremiumBoard pal={pal} uid={uid} {...common} />
+      ) : (
+        <ClassicBoard {...common} />
       )}
     </div>
   );
 }
+
+export default StandeeBoard;

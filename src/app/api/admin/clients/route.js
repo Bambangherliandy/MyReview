@@ -76,3 +76,43 @@ export async function POST(request) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
+// app/api/admin/clients/route.js
+
+export async function DELETE(request) {
+  try {
+    const slug = new URL(request.url).searchParams.get('slug');
+
+    if (!slug) {
+      return NextResponse.json(
+        { success: false, message: 'Slug wajib diisi.' },
+        { status: 400 }
+      );
+    }
+
+    const client = await clientPromise;
+    const db = client.db('myreview_db');
+
+    // Hapus dokumen berdasarkan slug
+    const result = await db.collection('clients').deleteOne({ slug });
+
+    // Jika tidak ada dokumen yang terhapus (slug tidak ditemukan)
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Klien tidak ditemukan.' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Klien berhasil dihapus.',
+    });
+  } catch (error) {
+    console.error('❌ DELETE API Error:', error.message);
+    return NextResponse.json(
+      { success: false, message: error.message },
+      { status: 500 }
+    );
+  }
+}

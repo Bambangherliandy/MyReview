@@ -31,7 +31,7 @@ export default function Logo({ height = 40, dark = false, tagline = false, class
           letterSpacing="-0.3"
         >
           <tspan fill={dark ? "#FB923C" : "#F97316"}>My</tspan>
-          <tspan fill={dark ? "#FFFFFF" : "#1F2430"}>Review</tspan>
+          <tspan fill={dark ? "#FFFFFF" : "#FFFFFF"}>Review</tspan>
         </text>
         {tagline && (
           <text
