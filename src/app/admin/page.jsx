@@ -6,6 +6,20 @@ import QrCodeCard from './QrCodeCard';
 // Link tulis-ulasan Google dibentuk otomatis dari Place ID
 const REVIEW_BASE = 'https://search.google.com/local/writereview?placeid=';
 
+// Pilihan tujuan saat QR di-scan
+const QR_MODES = [
+  {
+    value: false,
+    title: 'Halaman rating MyReview',
+    desc: 'Pelanggan memilih bintang dulu, lalu menulis ulasan di Google atau mengirim masukan lewat WhatsApp.',
+  },
+  {
+    value: true,
+    title: 'Langsung ke Google Maps',
+    desc: 'Begitu di-scan, pelanggan langsung masuk ke dialog tulis ulasan Google. Tanpa halaman rating dan tanpa opsi WhatsApp.',
+  },
+];
+
 // Terima Place ID polos, atau link lengkap yang tidak sengaja ditempel (diambil placeid-nya saja)
 const extractPlaceId = (value) => {
   const raw = String(value || '').trim();
@@ -36,6 +50,7 @@ export default function AdminPage() {
   const [placeId, setPlaceId] = useState('');
   const [legacyUrl, setLegacyUrl] = useState(''); // link lama (bukan format placeid) milik klien yang sedang diedit
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [directToGoogle, setDirectToGoogle] = useState(false); // true = QR langsung ke Google Maps
 
   // Form State tambahan untuk Kredensial Login Client
   const [email, setEmail] = useState('');
@@ -82,6 +97,7 @@ export default function AdminPage() {
     setPlaceId('');
     setLegacyUrl('');
     setWhatsappNumber('');
+    setDirectToGoogle(false);
     setEmail('');
     setPassword('');
     setIsEditing(false);
@@ -107,6 +123,7 @@ export default function AdminPage() {
           name,
           logo,
           googleMapsUrl: reviewUrl, // tetap disimpan di field yang sama, jadi bagian lain tidak perlu diubah
+          directToGoogle, // true = scan QR langsung masuk ke link Google Maps
           whatsappNumber,
           email,
           password,
@@ -140,6 +157,7 @@ export default function AdminPage() {
     setPlaceId(fromUrl);
     setLegacyUrl(fromUrl ? '' : stored); // link format lama tetap aman bila Place ID tidak diisi
     setWhatsappNumber(item.whatsappNumber || '');
+    setDirectToGoogle(Boolean(item.directToGoogle));
     setEmail(item.email || '');
     setPassword(''); // Biarkan kosong jika tidak ingin mengubah password
     setIsEditing(true);
@@ -370,6 +388,46 @@ export default function AdminPage() {
               )}
             </div>
 
+            {/* TUJUAN SAAT QR DI-SCAN */}
+            <fieldset>
+              <legend className="block text-xs font-semibold text-slate-700 mb-2">
+                Tujuan saat QR di-scan
+              </legend>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {QR_MODES.map((mode) => {
+                  const active = directToGoogle === mode.value;
+                  return (
+                    <label
+                      key={String(mode.value)}
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${
+                        active
+                          ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-200'
+                          : 'border-slate-300 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="qrMode"
+                        checked={active}
+                        onChange={() => setDirectToGoogle(mode.value)}
+                        className="mt-0.5 h-4 w-4 accent-amber-500"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-slate-900">{mode.title}</span>
+                        <span className="mt-0.5 block text-[11px] leading-snug text-slate-500">{mode.desc}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {directToGoogle && (
+                <p className="mt-2 text-[11px] leading-snug text-slate-500">
+                  QR yang sudah dicetak tetap sama (mengarah ke /{slug || 'slug-klien'}). Perubahan mode
+                  dan link ulasan berlaku tanpa mencetak ulang.
+                </p>
+              )}
+            </fieldset>
+
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
@@ -403,13 +461,14 @@ export default function AdminPage() {
                   <th className="p-3">Nama Tempat</th>
                   <th className="p-3">Email / Username Login</th>
                   <th className="p-3">WhatsApp</th>
+                  <th className="p-3">Mode QR</th>
                   <th className="p-3 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {clientKeys.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-4 text-center text-slate-500">
+                    <td colSpan={6} className="p-4 text-center text-slate-500">
                       Belum ada klien terdaftar.
                     </td>
                   </tr>
@@ -420,6 +479,17 @@ export default function AdminPage() {
                     <td className="p-3 font-medium text-slate-900">{clients[key].name}</td>
                     <td className="p-3 font-mono text-slate-600">{clients[key].email || '-'}</td>
                     <td className="p-3">{clients[key].whatsappNumber}</td>
+                    <td className="p-3">
+                      {clients[key].directToGoogle ? (
+                        <span className="inline-block whitespace-nowrap rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-200">
+                          Langsung Google
+                        </span>
+                      ) : (
+                        <span className="inline-block whitespace-nowrap rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                          Halaman rating
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3">
                       <div className="flex items-center justify-center gap-1.5">
                         <button

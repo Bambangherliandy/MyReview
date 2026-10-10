@@ -920,6 +920,7 @@ export default function QrCodeCard({ client, demo = false }) {
   const [downloading, setDownloading] = useState(false);
   const [theme, setTheme] = useState('classic'); // tampilan awal: Google Klasik
   const [showThemes, setShowThemes] = useState(false); // daftar tema tertutup secara default
+  const [showName, setShowName] = useState(true); // tampilkan nama usaha di papan (ikut ke PNG/SVG/cetak)
 
   // Ukuran cetak (cm). Disimpan sebagai teks supaya enak diketik.
   const [showPrint, setShowPrint] = useState(false);
@@ -1099,12 +1100,12 @@ export default function QrCodeCard({ client, demo = false }) {
     hn,
     qr: qrCodeDataUrl,
     error,
-    name: client.name,
+    name: showName ? client.name : '',
     alt: `QR Code ${client.name}`,
   };
 
   return (
-    <div ref={wrapRef} className="flex flex-col items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm w-full">
+    <div ref={wrapRef} className={`flex flex-col items-center gap-4 p-4 border rounded-2xl shadow-sm w-full ${demo ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
       {/* TEMPLATE STANDEE */}
       <div className="my-2" style={{ padding: 10 }}>
         <div
@@ -1127,13 +1128,24 @@ export default function QrCodeCard({ client, demo = false }) {
         </div>
       </div>
 
-      {/* Nama klien & URL (tidak ikut ter-export / tercetak) */}
-      <div className="text-center px-2">
-        <p className="text-sm font-semibold text-slate-700">{client.name}</p>
-        {!demo && (
-          <p className="text-[11px] text-slate-400 break-all font-mono">{url}</p>
-        )}
-      </div>
+      {/* Nama klien & URL (tidak ikut ter-export / tercetak). Di landing page nama sudah ada di papan. */}
+      {!demo && (
+        <div className="w-full px-1 text-center">
+          <div className="mb-2 flex items-center justify-center gap-1.5" aria-hidden="true">
+            {['#4285F4', '#EA4335', '#FBBC05', '#34A853'].map((c) => (
+              <span key={c} className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-300" />
+            <p className="max-w-[70%] truncate text-base font-semibold text-slate-800" style={{ fontFamily: FONT_SERIF }}>
+              {client.name}
+            </p>
+            <span className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-300" />
+          </div>
+          <p className="mt-1 break-all font-mono text-[11px] text-slate-400">{url}</p>
+        </div>
+      )}
 
       {/* PILIH TEMA (bisa dibuka/tutup) */}
       <div className="w-full">
@@ -1142,18 +1154,18 @@ export default function QrCodeCard({ client, demo = false }) {
           onClick={() => setShowThemes((v) => !v)}
           aria-expanded={showThemes}
           aria-controls={`themes-${uid}`}
-          className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-left transition-colors hover:bg-slate-100"
+          className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-colors ${demo ? 'border-white/15 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-100'}`}
         >
           <span className="flex min-w-0 items-center gap-2">
             <span
               className="inline-block h-4 w-4 shrink-0 rounded-full border border-slate-300"
               style={{ background: THEMES[theme]?.swatch }}
             />
-            <span className="truncate text-xs font-bold text-slate-700">
-              Tema desain: <span className="text-slate-900">{THEMES[theme]?.title}</span>
+            <span className={`truncate text-xs font-bold ${demo ? 'text-slate-300' : 'text-slate-700'}`}>
+              Tema desain: <span className={demo ? 'text-white' : 'text-slate-900'}>{THEMES[theme]?.title}</span>
             </span>
           </span>
-          <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-slate-500">
+          <span className={`flex shrink-0 items-center gap-1 text-[11px] font-semibold ${demo ? 'text-slate-400' : 'text-slate-500'}`}>
             {showThemes ? 'Tutup' : `Ganti (${THEME_KEYS.length})`}
             <ChevronDown
               size={14}
@@ -1182,8 +1194,12 @@ export default function QrCodeCard({ client, demo = false }) {
                     aria-pressed={active}
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
                       active
-                        ? 'border-amber-500 bg-amber-50 text-slate-900 ring-2 ring-amber-200'
-                        : 'border-slate-300 text-slate-600 hover:bg-slate-100'
+                        ? demo
+                          ? 'border-amber-500 bg-amber-500/15 text-white ring-2 ring-amber-500/30'
+                          : 'border-amber-500 bg-amber-50 text-slate-900 ring-2 ring-amber-200'
+                        : demo
+                          ? 'border-white/15 text-slate-300 hover:bg-white/10'
+                          : 'border-slate-300 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <span
@@ -1198,6 +1214,38 @@ export default function QrCodeCard({ client, demo = false }) {
           </div>
         </div>
       </div>
+
+      {/* OPSI: NAMA USAHA DI PAPAN */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={showName}
+        onClick={() => setShowName((v) => !v)}
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
+          demo ? 'border-white/15 bg-white/5 hover:bg-white/10' : 'border-slate-300 bg-white hover:bg-slate-100'
+        }`}
+      >
+        <span className="min-w-0">
+          <span className={`block text-xs font-bold ${demo ? 'text-slate-300' : 'text-slate-700'}`}>
+            Tampilkan nama usaha di papan
+          </span>
+          <span className={`block text-[11px] leading-snug ${demo ? 'text-slate-400' : 'text-slate-500'}`}>
+            {showName ? 'Nama ikut tampil di bagian bawah papan' : 'Papan tanpa nama, siap dicetak untuk usaha apa pun'}
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${
+            showName ? 'bg-amber-500' : demo ? 'bg-white/20' : 'bg-slate-300'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+              showName ? 'left-[18px]' : 'left-0.5'
+            }`}
+          />
+        </span>
+      </button>
 
       {/* PENGATURAN UKURAN CETAK */}
       {showPrint && !demo && (

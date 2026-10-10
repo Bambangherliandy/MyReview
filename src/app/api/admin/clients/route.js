@@ -27,7 +27,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { slug, name, logo, googleMapsUrl, whatsappNumber, email, password } = body;
+    const { slug, name, logo, googleMapsUrl, whatsappNumber, email, password, directToGoogle } = body;
 
     if (!slug || !name || !googleMapsUrl || !whatsappNumber) {
       return NextResponse.json(
@@ -47,6 +47,7 @@ export async function POST(request) {
       name,
       logo: logo || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=200',
       googleMapsUrl,
+      directToGoogle: Boolean(directToGoogle), // true = scan QR langsung ke Google Maps
       whatsappNumber,
       email: email || `${slug}@myreview.com`, // Default email dari slug jika kosong
       updatedAt: new Date(),
@@ -54,8 +55,7 @@ export async function POST(request) {
 
     // Jika password diisi, hash password dengan bcrypt
     if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updatePayload.password = hashedPassword;
+      updatePayload.password = await bcrypt.hash(password, 10);
     } else if (!existingClient) {
       // Jika tambah baru tapi password kosong, berikan password default
       updatePayload.password = await bcrypt.hash('123456', 10);
